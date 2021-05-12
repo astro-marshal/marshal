@@ -597,9 +597,9 @@ class SourceHandler(BaseHandler):
                     obj_id, self.current_user, options=[joinedload(Obj.thumbnails)]
                 )
             else:
-                s = Obj.get_if_accessible_by(obj_id, self.current_user)
-            if s is None:
-                return self.error("Source not found", status=404)
+                s = Obj.get_if_accessible_by(
+                    obj_id, self.current_user, raise_if_none=True
+                )
             source_info = s.to_dict()
             source_info["followup_requests"] = (
                 FollowupRequest.query_records_accessible_by(
@@ -1489,9 +1489,7 @@ class SourceOffsetsHandler(BaseHandler):
               application/json:
                 schema: Error
         """
-        source = Obj.get_if_accessible_by(obj_id, self.current_user)
-        if source is None:
-            return self.error('Source not found', status=404)
+        source = Obj.get_if_accessible_by(obj_id, self.current_user, raise_if_none=True)
 
         initial_pos = (source.ra, source.dec)
 
@@ -1663,10 +1661,7 @@ class SourceFinderHandler(BaseHandler):
               application/json:
                 schema: Error
         """
-        source = Obj.get_if_accessible_by(obj_id, self.current_user)
-        if source is None:
-            return self.error('Source not found', status=404)
-
+        source = Obj.get_if_accessible_by(obj_id, self.current_user, raise_if_none=True)
         output_type = self.get_query_argument('type', 'pdf')
         if output_type not in ["png", "pdf"]:
             return self.error(f'Invalid argument for `type`: {output_type}')
@@ -1886,9 +1881,9 @@ class SourceNotificationHandler(BaseHandler):
         if data.get("sourceId") is None:
             return self.error("Missing required parameter `sourceId`")
 
-        source = Obj.get_if_accessible_by(data["sourceId"], self.current_user)
-        if source is None:
-            return self.error('Source not found', status=404)
+        Obj.get_if_accessible_by(
+            data["sourceId"], self.current_user, raise_if_none=True
+        )
 
         source_id = data["sourceId"]
 
