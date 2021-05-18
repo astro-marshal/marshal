@@ -1741,11 +1741,8 @@ def spectroscopy_plot(obj_id, user, spec_id=None, width=600, device="browser"):
     )
 
     # Update the element spectral lines as well
-    for (
-        callback
-    ) in (
-        callbacks
-    ):  # it's all the callbacks and it's wroth for every one of them. should separate here also
+    for callback in callbacks:  
+        # it's all the callbacks and it's wroth for every one of them. should separate here also
         z_textinput.js_on_change('value', callback)
         v_exp_textinput.js_on_change('value', callback)
 
