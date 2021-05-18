@@ -1643,7 +1643,6 @@ def spectroscopy_plot(obj_id, user, spec_id=None, width=600, device="browser"):
     callbacks = []  # The checkbox callbacks for each element
 
     full_model_dict = {**model_dict, **sz_dict}
-    # dict3 = {**dict1 , **dict2}
 
     for column_idx, element_dict in enumerate(element_dicts):
         element_dict = [e for e in element_dict if e is not None]
