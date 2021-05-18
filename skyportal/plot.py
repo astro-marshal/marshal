@@ -1598,10 +1598,9 @@ def spectroscopy_plot(obj_id, user, spec_id=None, width=600, device="browser"):
 
             sz_dict[f'el{i}'].visible = False
 
-        elif name_line_list[i][0] == 'Tellurics-1':
+        elif name_line_list[i][0] in ('Tellurics-1', 'Tellurics-2'):
 
             el_data['x'] = el_data['wavelength']
-            # [6867, 6884]
             midtel1 = (el_data['x'][0] + el_data['x'][1]) / 2
             widtel1 = el_data['x'][1] - el_data['x'][0]
 
@@ -1612,27 +1611,6 @@ def spectroscopy_plot(obj_id, user, spec_id=None, width=600, device="browser"):
                 top=1e4,
                 color=color,
                 alpha=0.3,
-                # source=ColumnDataSource(tel1),
-            )
-
-            sz_dict[f'el{i}'].visible = False
-
-        elif name_line_list[i][0] == 'Tellurics-2':
-
-            el_data['x'] = el_data['wavelength']
-            # [7594, 7621]
-
-            midtel2 = (el_data['x'][0] + el_data['x'][1]) / 2
-            widtel2 = el_data['x'][1] - el_data['x'][0]
-
-            sz_dict[f'el{i}'] = plot.vbar(
-                x=midtel2,
-                width=widtel2,
-                # TODO change limits
-                top=1e4,
-                color=color,
-                alpha=0.3,
-                # source=ColumnDataSource(tel2),
             )
 
             sz_dict[f'el{i}'].visible = False
