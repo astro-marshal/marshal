@@ -1658,7 +1658,6 @@ def spectroscopy_plot(obj_id, user, spec_id=None, width=600, device="browser"):
                 'elements': elements,
                 'z': z_textinput,
                 'v_exp': v_exp_textinput,
-                # **model_dict,
                 **full_model_dict,
             },
             code=f"""
