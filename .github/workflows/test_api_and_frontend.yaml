@@ -38,16 +38,14 @@ jobs:
           path: |
             ~/.cache
             ~/.local
-            ~/.npm
-            cache
-          key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
+          key: ${{ runner.os }}-v2-${{ hashFiles('**/lockfiles') }}
 
-      - name: Checkout master
+      - name: Checkout branch being tested
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-          ref: master
           submodules: true
+          clean: false
 
       - name: Write SkyPortal configs
         run: |
@@ -141,13 +139,6 @@ jobs:
           make run &
           sleep 10 && make load_demo_data
           kill %1
-
-      - name: Checkout branch being tested
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-          submodules: true
-          clean: false
 
       - name: Formatting and linting checks
         if: github.ref != 'refs/heads/master'
