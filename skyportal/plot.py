@@ -67,8 +67,8 @@ SPEC_LINES = {
         '#00a64d',
     ),
     '[O II]': ([3726, 3729], '#b9d2c5'),
-    'O III': ([4959, 5007], '#00bf59'),
-    '[OIII]': ([4363, 4959, 5007], '#aeefcc'),
+    # 'O III': ([4959, 5007], '#00bf59'), # these lines are actually forbidden O III lines
+    '[O III]': ([4363, 4959, 5007], '#aeefcc'),
     'O V': ([3145, 4124, 4930, 5598, 6500], '#03d063'),
     'O VI': ([3811, 3834], '#01e46b'),
     'Na I': ([5890, 5896, 8183, 8195], '#aba000'),
@@ -177,12 +177,116 @@ SPEC_LINES = {
     # NaI 5890,5896; MgII 2798; SII 6717,6731; CaII H&K 3969,3934
     # ZnII 2025; CrII 2056,2062,2066; FeII 2249,2260,2343,2374,2382,2586,2599;
     # MnII 2576,2594; MgI 2852
+    'Tellurics-1': ([6867, 6884], '#e5806b'),
+    'Tellurics-2': ([7594, 7621], '#e5806b'),
+    'Sky Lines': (
+        [
+            4168,
+            4917,
+            4993,
+            5199,
+            5577,
+            5890,
+            6236,
+            6300,
+            6363,
+            6831,
+            6863,
+            6923,
+            6949,
+            7242,
+            7276,
+            7316,
+            7329,
+            7341,
+            7359,
+            7369,
+            7402,
+            7437,
+            7470,
+            7475,
+            7480,
+            7524,
+            7570,
+            7713,
+            7725,
+            7749,
+            7758,
+            7776,
+            7781,
+            7793,
+            7809,
+            7821,
+            7840,
+            7853,
+            7869,
+            7879,
+            7889,
+            7914,
+            7931,
+            7947,
+            7965,
+            7978,
+            7993,
+            8015,
+            8026,
+            8063,
+            8281,
+            8286,
+            8299,
+            8311,
+            8346,
+            8365,
+            8384,
+            8399,
+            8418,
+            8432,
+            8455,
+            8468,
+            8496,
+            8507,
+            8542,
+            8552,
+            8632,
+            8660,
+            8665,
+            8768,
+            8781,
+            8795,
+            8831,
+            8854,
+            8871,
+            8889,
+            8907,
+            8923,
+            8947,
+            8961,
+            8991,
+            9004,
+            9040,
+            9051,
+            9093,
+            9103,
+            9158,
+        ],
+        '#6dcff6',
+    ),
 }
 
+# SKYLINES from GM
+# SKYLINES = {[ 4168, 4917, 4993,5199,5577,5890,6236,6300,6363,6831,6863,6923,6949,7242,7276,7316,7329,7341,7359,7369,
+# 7402,7437,7470,7475,7480,7524,7570,7713,7725,7749,7758,7776,7781,7793,7809,7821,7840,7853,7869,7879,7889,7914,7931,
+# 7947,7965,7978,7993,8015,8026,8063,8281,8286,8299,8311,8346,8365,8384,8399,8418,8432,8455,8468,8496,8507,8542,8552,
+# 8632,8660,8665,8768,8781,8795,8831,8854,8871,8889,8907,8923,8947,8961,8991,9004,9040,9051,9093,9103,9158]}
+
+# TODO:  - generate the telluric lines and sky lines.
 # Tellurics
 # 'Tellurics': (np.append(list(np.linspace(6867,6884)), list(np.linspace(7594,7621))), '#99FFFF')
 
-# TODO:  - generate the telluric lines
+# TELLURICS = {
+
+#     # 6867-6884, 7594-7621
+# }
 
 
 class CheckboxWithLegendGroup(CheckboxGroup):
@@ -1395,6 +1499,7 @@ def spectroscopy_plot(obj_id, user, spec_id=None, width=600, device="browser"):
     )
     plot.add_tools(hover)
     model_dict = {}
+    sz_dict = {}
     legend_items = []
     for i, (key, df) in enumerate(split):
         renderers = []
@@ -1494,20 +1599,58 @@ def spectroscopy_plot(obj_id, user, spec_id=None, width=600, device="browser"):
         margin=(0, 10, 0, 10),
     )
 
+    name_line_list = list(SPEC_LINES.items())
+
     for i, (wavelengths, color) in enumerate(SPEC_LINES.values()):
+
         el_data = pd.DataFrame({'wavelength': wavelengths})
-        obj_redshift = 0 if obj.redshift is None else obj.redshift
-        el_data['x'] = el_data['wavelength'] * (1.0 + obj_redshift)
-        model_dict[f'el{i}'] = plot.segment(
-            x0='x',
-            x1='x',
-            # TODO change limits
-            y0=0,
-            y1=1e4,
-            color=color,
-            source=ColumnDataSource(el_data),
-        )
-        model_dict[f'el{i}'].visible = False
+
+        if name_line_list[i][0] == 'Sky Lines':  # No redshift correction of skylines
+            el_data['x'] = el_data['wavelength']
+            # model_dict is used for collecting all the spec lines which we want to move with redshift and vexp
+            # we defined earlier "sz_dict" for lines (sky, tellurics) which should not move with z and v_exp
+            sz_dict[f'el{i}'] = plot.segment(
+                x0='x',
+                x1='x',
+                y0=0,
+                y1=1e4,
+                color=color,
+                source=ColumnDataSource(el_data),
+            )
+
+            sz_dict[f'el{i}'].visible = False
+
+        elif name_line_list[i][0] in ('Tellurics-1', 'Tellurics-2'):
+
+            el_data['x'] = el_data['wavelength']
+            midtel1 = (el_data['x'][0] + el_data['x'][1]) / 2
+            widtel1 = el_data['x'][1] - el_data['x'][0]
+
+            sz_dict[f'el{i}'] = plot.vbar(
+                x=midtel1,
+                width=widtel1,
+                # TODO change limits
+                top=1e4,
+                color=color,
+                alpha=0.3,
+            )
+
+            sz_dict[f'el{i}'].visible = False
+
+        else:
+            obj_redshift = 0 if obj.redshift is None else obj.redshift
+            el_data['x'] = el_data['wavelength'] * (1.0 + obj_redshift)
+
+            model_dict[f'el{i}'] = plot.segment(
+                x0='x',
+                x1='x',
+                # TODO change limits
+                y0=0,
+                y1=1e4,
+                color=color,
+                source=ColumnDataSource(el_data),
+            )
+            model_dict[f'el{i}'].visible = False
 
     # Split spectral line legend into columns
     if device == "mobile_portrait":
@@ -1520,6 +1663,9 @@ def spectroscopy_plot(obj_id, user, spec_id=None, width=600, device="browser"):
 
     elements_groups = []  # The Bokeh checkbox groups
     callbacks = []  # The checkbox callbacks for each element
+
+    full_model_dict = {**model_dict, **sz_dict}
+
     for column_idx, element_dict in enumerate(element_dicts):
         element_dict = [e for e in element_dict if e is not None]
         labels = [key for key, value in element_dict]
@@ -1534,7 +1680,7 @@ def spectroscopy_plot(obj_id, user, spec_id=None, width=600, device="browser"):
                 'elements': elements,
                 'z': z_textinput,
                 'v_exp': v_exp_textinput,
-                **model_dict,
+                **full_model_dict,
             },
             code=f"""
             let c = 299792.458; // speed of light in km / s
@@ -1552,8 +1698,37 @@ def spectroscopy_plot(obj_id, user, spec_id=None, width=600, device="browser"):
             }}
         """,
         )
-        elements.js_on_click(callback)
-        callbacks.append(callback)
+
+        # callback definition for the lines whenever changing the redshift or velocity
+        callback_zvs = CustomJS(
+            args={
+                'elements': elements,
+                'z': z_textinput,
+                'v_exp': v_exp_textinput,
+                # **model_dict,
+                **model_dict,  # only on the spec lines, not tellurics or sky lines
+            },
+            code=f"""
+            let c = 299792.458; // speed of light in km / s
+            const i_max = {column_idx} +  {columns} * elements.labels.length;
+            let local_i = 0;
+            for (let i = {column_idx}; i < i_max; i = i + {columns}) {{
+                let el = eval("el" + i);
+                el.visible = (elements.active.includes(local_i))
+                el.data_source.data.x = el.data_source.data.wavelength.map(
+                    x_i => (x_i * (1 + parseFloat(z.value)) /
+                                    (1 + parseFloat(v_exp.value) / c))
+                );
+                el.data_source.change.emit();
+                local_i++;
+            }}
+        """,
+        )
+
+        elements.js_on_click(callback)  # elements definition
+        callbacks.append(
+            callback_zvs
+        )  # callbacks is for moving lines with the change of z or vexp
 
     z_textinput.js_on_change(
         'value',
@@ -1588,7 +1763,8 @@ def spectroscopy_plot(obj_id, user, spec_id=None, width=600, device="browser"):
     )
 
     # Update the element spectral lines as well
-    for callback in callbacks:
+    for callback in callbacks:  
+        # it's all the callbacks and it's wroth for every one of them. should separate here also
         z_textinput.js_on_change('value', callback)
         v_exp_textinput.js_on_change('value', callback)
 
