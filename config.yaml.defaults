@@ -24,6 +24,15 @@ app:
   lt_host: 161.72.57.3
   lt_port: 8080
 
+  lco_protocol: https
+  lco_host: observe.lco.global
+  lco_port: 443
+
+  ztf:
+    protocol: http
+    host: skipper.caltech.edu
+    port: 4000
+
   # See https://stackoverflow.com/a/35604855 for syntax
   # These are Javascript component routes
   routes:
@@ -172,10 +181,10 @@ app:
       resizeable: true
       minW: 2
       layouts:
-        xlg: [0, 10, 4, 1]
-        lg: [0, 10, 4, 1]
-        md: [0, 10, 4, 1]
-        sm: [0, 10, 4, 1]
+        xlg: [0, 3, 5, 2]
+        lg: [0, 3, 4, 1]
+        md: [0, 6, 5, 2]
+        sm: [0, 6, 6, 1]
         xs: [0, 12, 4, 1]
 
     SourceCounts:
@@ -220,6 +229,16 @@ app:
         sm: [3, 3, 3, 3]
         xs: [0, 7, 4, 3]
 
+    RecentGcnEvents:
+      resizeable: true
+      minW: 3
+      layouts:
+        xlg: [5, 3, 5, 2]
+        lg: [4, 3, 5, 2]
+        md: [5, 6, 5, 2]
+        sm: [0, 7, 6, 2]
+        xs: [0, 13, 4, 2]
+
     GroupList:
       props:
         title: My Groups
@@ -262,6 +281,7 @@ services:
 
 misc:
   days_to_keep_unsaved_candidates: 7
+  minutes_to_keep_candidate_query_cache: 60
   public_group_name: "Sitewide Group"
   # Use a named cosmology from `astropy.cosmology.parameters.available` cosmologies
   # or supply the arguments for an `astropy.cosmology.FLRW` cosmological instance.
@@ -274,6 +294,8 @@ misc:
   # The minimum signal-to-noise ratio/ n-sigma for lim mag cacluations to
   # consider a photometry point as a detection
   photometry_detection_threshold_nsigma: 3.0
+
+  allow_nonadmins_delete_objs: False
 
 weather:
   # time in seconds to wait before fetching weather for a given telescope

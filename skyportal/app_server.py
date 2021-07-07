@@ -18,6 +18,8 @@ from skyportal.handlers.api import (
     FilterHandler,
     FollowupRequestHandler,
     FacilityMessageHandler,
+    GcnEventHandler,
+    LocalizationHandler,
     GroupHandler,
     GroupUserHandler,
     GroupUsersFromOtherGroupsHandler,
@@ -32,6 +34,7 @@ from skyportal.handlers.api import (
     ObservingRunHandler,
     PhotometryHandler,
     BulkDeletePhotometryHandler,
+    ObjHandler,
     ObjPhotometryHandler,
     ObjClassificationHandler,
     ObjAnnotationHandler,
@@ -80,12 +83,24 @@ from skyportal.handlers.api.internal import (
     StandardsHandler,
     NotificationHandler,
     BulkNotificationHandler,
+    RecentGcnEventsHandler,
 )
 
 from . import models, model_util, openapi
 
 
 log = make_log('app_server')
+
+
+class CustomApplication(tornado.web.Application):
+    def log_request(self, handler):
+        # We don't want to log expected exceptions intentionally raised
+        # during auth pipeline; such exceptions will have "google-oauth2" in
+        # their request route
+        if "google-oauth2" in str(handler.request.uri):
+            return
+        return super().log_request(handler)
+
 
 skyportal_handlers = [
     # API endpoints
@@ -95,16 +110,19 @@ skyportal_handlers = [
     (r'/api/candidates(/[0-9A-Za-z-_]+)/([0-9]+)', CandidateHandler),
     (r'/api/candidates(/.*)?', CandidateHandler),
     (r'/api/classification(/[0-9]+)?', ClassificationHandler),
-    (r'/api/comment(/[0-9]+)?', CommentHandler),
+    (r'/api/comment', CommentHandler),
     (r'/api/comment(/[0-9]+)/attachment', CommentAttachmentHandler),
     # Allow the '.pdf' suffix for the attachment route, as the
     # react-file-previewer package expects URLs ending with '.pdf' to
     # load PDF files.
     (r'/api/comment(/[0-9]+)/attachment.pdf', CommentAttachmentHandler),
+    (r'/api/comment(/[0-9]+)?(/.+)?', CommentHandler),
     (r'/api/annotation(/[0-9]+)?', AnnotationHandler),
     (r'/api/facility', FacilityMessageHandler),
     (r'/api/filters(/.*)?', FilterHandler),
     (r'/api/followup_request(/.*)?', FollowupRequestHandler),
+    (r'/api/gcn_event(/.*)?', GcnEventHandler),
+    (r'/api/localization(/.*)/name(/.*)?', LocalizationHandler),
     (r'/api/groups/public', PublicGroupHandler),
     (r'/api/groups(/[0-9]+)/streams(/[0-9]+)?', GroupStreamHandler),
     (r'/api/groups(/[0-9]+)/users(/.*)?', GroupUserHandler),
@@ -119,19 +137,20 @@ skyportal_handlers = [
     (r'/api/invitations(/.*)?', InvitationHandler),
     (r'/api/newsfeed', NewsFeedHandler),
     (r'/api/observing_run(/[0-9]+)?', ObservingRunHandler),
+    (r'/api/objs(/[0-9A-Za-z-_\.\+]+)', ObjHandler),
     (r'/api/photometry(/[0-9]+)?', PhotometryHandler),
     (r'/api/sharing', SharingHandler),
     (r'/api/photometry/bulk_delete/(.*)', BulkDeletePhotometryHandler),
     (r'/api/photometry/range(/.*)?', PhotometryRangeHandler),
     (r'/api/roles', RoleHandler),
-    (r'/api/sources(/[0-9A-Za-z-_]+)/photometry', ObjPhotometryHandler),
-    (r'/api/sources(/[0-9A-Za-z-_]+)/spectra', ObjSpectraHandler),
-    (r'/api/sources(/[0-9A-Za-z-_]+)/offsets', SourceOffsetsHandler),
-    (r'/api/sources(/[0-9A-Za-z-_]+)/finder', SourceFinderHandler),
-    (r'/api/sources(/[0-9A-Za-z-_]+)/classifications', ObjClassificationHandler),
-    (r'/api/sources(/[0-9A-Za-z-_]+)/annotations', ObjAnnotationHandler),
-    (r'/api/sources(/[0-9A-Za-z-_]+)/groups', ObjGroupsHandler),
-    (r'/api/sources(/[0-9A-Za-z-_]+)/color_mag', ObjColorMagHandler),
+    (r'/api/sources(/[0-9A-Za-z-_\.\+]+)/photometry', ObjPhotometryHandler),
+    (r'/api/sources(/[0-9A-Za-z-_\.\+]+)/spectra', ObjSpectraHandler),
+    (r'/api/sources(/[0-9A-Za-z-_\.\+]+)/offsets', SourceOffsetsHandler),
+    (r'/api/sources(/[0-9A-Za-z-_\.\+]+)/finder', SourceFinderHandler),
+    (r'/api/sources(/[0-9A-Za-z-_\.\+]+)/classifications', ObjClassificationHandler),
+    (r'/api/sources(/[0-9A-Za-z-_\.\+]+)/annotations', ObjAnnotationHandler),
+    (r'/api/sources(/[0-9A-Za-z-_\.\+]+)/groups', ObjGroupsHandler),
+    (r'/api/sources(/[0-9A-Za-z-_\.\+]+)/color_mag', ObjColorMagHandler),
     (r'/api/sources(/.*)?', SourceHandler),
     (r'/api/source_notifications', SourceNotificationHandler),
     (r'/api/source_groups(/.*)?', SourceGroupsHandler),
@@ -171,6 +190,7 @@ skyportal_handlers = [
     (r'/api/internal/notifications(/[0-9]+)?', NotificationHandler),
     (r'/api/internal/notifications/all', BulkNotificationHandler),
     (r'/api/internal/ps1_thumbnail', PS1ThumbnailHandler),
+    (r'/api/internal/recent_gcn_events', RecentGcnEventsHandler),
     (r'/api/.*', InvalidEndpointHandler),
     (r'/become_user(/.*)?', BecomeUserHandler),
     (r'/logout', LogoutHandler),
@@ -247,7 +267,7 @@ def make_app(cfg, baselayer_handlers, baselayer_settings, process=None, env=None
         }
     )
 
-    app = tornado.web.Application(handlers, **settings)
+    app = CustomApplication(handlers, **settings)
     models.init_db(
         **cfg['database'],
         autoflush=False,

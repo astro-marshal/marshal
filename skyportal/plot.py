@@ -315,7 +315,7 @@ phot_markers = [
     "triangle",
     "square",
     "diamond",
-    "star",
+    "inverted_triangle",
     "plus",
     "cross",
     "triangle_pin",
@@ -324,7 +324,13 @@ phot_markers = [
 
 
 def get_effective_wavelength(bandpass_name):
-    bandpass = sncosmo.get_bandpass(bandpass_name)
+    try:
+        bandpass = sncosmo.get_bandpass(bandpass_name)
+    except ValueError as e:
+        raise ValueError(
+            f"Could not get bandpass for {bandpass_name} due to sncosmo error: {e}"
+        )
+
     return float(bandpass.wave_eff)
 
 
@@ -421,7 +427,7 @@ def annotate_spec(plot, spectra, lower, upper):
 
 
 def add_plot_legend(plot, legend_items, width, legend_orientation, legend_loc):
-    """ Helper function to add responsive legends to a photometry plot tab """
+    """Helper function to add responsive legends to a photometry plot tab"""
     if legend_orientation == "horizontal":
         width_remaining = width - 120
         current_legend_items = []
@@ -1440,6 +1446,9 @@ def spectroscopy_plot(obj_id, user, spec_id=None, width=600, device="browser"):
 
     # These values are equivalent from the photometry plot values
     frame_width = width - 64
+    aspect_ratio = 2.0
+    legend_row_height = 25
+    legend_items_per_row = 1
     if device == "mobile_portrait":
         legend_items_per_row = 1
         legend_row_height = 24
@@ -1458,13 +1467,26 @@ def spectroscopy_plot(obj_id, user, spec_id=None, width=600, device="browser"):
         aspect_ratio = 1.8
     elif device == "browser":
         frame_width = width - 200
+        aspect_ratio = 2.0
+        legend_row_height = 25
+        legend_items_per_row = 1
     plot_height = (
-        400
+        math.floor(width / aspect_ratio)
         if device == "browser"
         else math.floor(width / aspect_ratio)
         + legend_row_height * int(len(split) / legend_items_per_row)
         + 30  # 30 is the height of the toolbar
     )
+
+    # check browser plot_height for legend overflow
+    if device == "browser":
+        plot_height_of_legend = (
+            legend_row_height * int(len(split) / legend_items_per_row)
+            + 40  # 40 is height of toolbar plus legend offset
+        )
+
+        if plot_height_of_legend > plot_height:
+            plot_height = plot_height_of_legend
 
     plot = figure(
         frame_width=frame_width,
@@ -1748,11 +1770,11 @@ def spectroscopy_plot(obj_id, user, spec_id=None, width=600, device="browser"):
 
     # Add some height for the checkboxes and sliders
     if device == "mobile_portrait":
-        height = plot_height + 400
+        height = plot_height + 440
     elif device == "mobile_landscape":
-        height = plot_height + 350
+        height = plot_height + 370
     else:
-        height = plot_height + 200
+        height = plot_height + 220
 
     row2 = row(elements_groups)
     row3 = column(z, v_exp) if "mobile" in device else row(z, v_exp)
